@@ -6,8 +6,8 @@ import Alert from "@material-ui/lab/Alert";
 
 import * as anchor from "@project-serum/anchor";
 
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import ProgressBar from '@ramonak/react-progress-bar'
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletDialogButton } from "@solana/wallet-adapter-material-ui";
 
@@ -26,7 +26,7 @@ const CounterText = styled.span``; // add your styles here
 const MintContainer = styled.div``; // add your styles here
 
 const MintButton = styled(Button)``; // add your styles here
-
+let arrayOfAddresses = [""];
 export interface HomeProps {
   candyMachineId: anchor.web3.PublicKey;
   config: anchor.web3.PublicKey;
@@ -41,6 +41,7 @@ const Home = (props: HomeProps) => {
   const [isActive, setIsActive] = useState(false); // true when countdown completes
   const [isSoldOut, setIsSoldOut] = useState(false); // true when items remaining is zero
   const [isMinting, setIsMinting] = useState(false); // true when user got to press MINT
+  const [itemsCurrent,setItemsCurrent] = useState(0)
 
   const [alertState, setAlertState] = useState<AlertState>({
     open: false,
@@ -53,10 +54,31 @@ const Home = (props: HomeProps) => {
   const wallet = useWallet();
   const [candyMachine, setCandyMachine] = useState<CandyMachine>();
 
+   function checkIfMinted(){
+    let alreadyminted = false;
+    if(wallet.publicKey != null){
+      if(arrayOfAddresses.includes(wallet.publicKey.toString())){
+        
+        alreadyminted = true
+      }
+    }
+    return(alreadyminted)
+  }
   const onMint = async () => {
     try {
       setIsMinting(true);
+      // if(checkIfMinted()){
+      //   setAlertState({
+      //     open:true,
+      //     message:'You cannot mint again',
+      //     severity:'error'
+
+      //   })
+      // }
+      
       if (wallet.connected && candyMachine?.program && wallet.publicKey) {
+        arrayOfAddresses.push(wallet.publicKey.toString())
+        console.log(arrayOfAddresses)
         const mintTxId = await mintOneToken(
           candyMachine,
           props.config,
@@ -71,6 +93,8 @@ const Home = (props: HomeProps) => {
           "singleGossip",
           false
         );
+
+        
 
         if (!status?.err) {
           setAlertState({
@@ -153,10 +177,18 @@ const Home = (props: HomeProps) => {
         );
 
       setIsSoldOut(itemsRemaining === 0);
+      setItemsCurrent(itemsRemaining);
+      
       setStartDate(goLiveDate);
       setCandyMachine(candyMachine);
     })();
   }, [wallet, props.candyMachineId, props.connection]);
+
+ 
+const ProgressBarModal = () =>{
+  return <ProgressBar completed = {100 - itemsCurrent}/>
+}
+
 
   return (
     <main>
@@ -196,7 +228,7 @@ const Home = (props: HomeProps) => {
           </MintButton>
         )}
       </MintContainer>
-
+      <ProgressBarModal />
       <Snackbar
         open={alertState.open}
         autoHideDuration={6000}
